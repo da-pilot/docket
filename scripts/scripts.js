@@ -1,4 +1,4 @@
-import { loadArea, loadStyle, loadBlock, setConfig } from './nx.js';
+import { loadArea, loadBlock, setConfig } from './nx.js';
 
 // Supported locales
 const locales = {
@@ -22,6 +22,16 @@ const decorateArea = ({ area = document }) => {
   eagerLoad(area, 'img');
 };
 
+function detectTutorial() {
+  const { classList } = document.body;
+  if (!classList.contains('tutorial-template')) return;
+  const section = document.createElement('div');
+  const block = document.createElement('div');
+  block.className = 'tutorial-nav';
+  section.append(block);
+  document.querySelector('main').append(section);
+}
+
 const loadNav = async (name) => {
   const position = name === 'sitenav' ? 'beforebegin' : 'afterend';
   const main = document.querySelector('main');
@@ -32,10 +42,35 @@ const loadNav = async (name) => {
   await loadBlock(nav);
 };
 
+function setLabPlaceholders() {
+  const org = localStorage.getItem('lab-org');
+  const site = localStorage.getItem('lab-site');
+  if (!(site || org)) return;
+  document.body.outerHTML = document.body.outerHTML
+    .replaceAll('{ORG}', org)
+    .replaceAll('{SITE}', site)
+    .replaceAll('%7BORG%7D', org)
+    .replaceAll('%7BSITE%7D', site);
+}
+
+function setColorScheme() {
+  const { classList } = document.body;
+  const hasScheme = classList.contains('light-theme') || classList.contains('dark-theme');
+  if (hasScheme) return;
+  const scheme = matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark-theme'
+    : 'light-theme';
+  classList.add(scheme);
+}
+
 (async function loadPage() {
   setConfig({ locales, widgets, decorateArea });
 
+  setColorScheme();
+  detectTutorial();
+  setLabPlaceholders();
   loadNav('sitenav');
+
   await loadArea();
   await loadNav('pagenav');
 }());
